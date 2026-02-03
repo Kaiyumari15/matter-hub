@@ -15,9 +15,6 @@ use serde::{Deserialize};
 use sqlx::SqlitePool;
 use tokio;
 
-// --- Constants ---
-const CHIP_TOOL_PATH: &str = "/home/callumt/connectedhomeip/examples/chip-tool/out/debug/chip-tool";
-
 // --- Structs ---
 
 /// Application state incuding the database connection pool
@@ -271,9 +268,8 @@ async fn handle_device_command(
     }
 
     // Build the command with arguments
-    let mut cmd = Command::new("sudo"); // Use WSL to run the chip-tool command. This will be removed when running natively on Linux
-    cmd.arg(CHIP_TOOL_PATH)
-        .arg(&cluster)
+    let mut cmd = Command::new("chip-tool");
+    cmd.arg(&cluster)
         .arg(&command);
     for arg in payload.args {
         cmd.arg(arg);
@@ -357,8 +353,7 @@ async fn handle_device_commision(
     };
 
     // Commission the device using chip-tool
-    let result = Command::new("sudo") // Use WSL to run the chip-tool command. This will be removed when running natively on Linux
-        .arg(CHIP_TOOL_PATH)
+    let result = Command::new("chip-tool")
         .arg("pairing")
         .arg("onnetwork")
         .arg(node_id.to_string())
@@ -391,8 +386,7 @@ async fn handle_device_commision(
     }
 
     // Ask the device about supported clusters / capabilities
-    let result = Command::new("sudo")
-        .arg(CHIP_TOOL_PATH)
+    let result = Command::new("chip-tool")
         .arg("descriptor")
         .arg("read")
         .arg("server-list")
@@ -431,8 +425,7 @@ async fn handle_device_commision(
             continue;
         }
         // GRun the commands to find the supported commands for this cluster
-        let result = Command::new("sudo")
-            .arg(CHIP_TOOL_PATH)
+        let result = Command::new("chip-tool")
             .arg(cluster_name)
             .arg("read")
             .arg("accepted-command-list")
