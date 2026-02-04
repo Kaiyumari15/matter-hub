@@ -14,6 +14,7 @@ use regex::Regex;
 use serde::{Deserialize};
 use sqlx::SqlitePool;
 use tokio;
+use dotenv;
 
 // --- Structs ---
 
@@ -136,7 +137,7 @@ struct CommandResponse {
 /// - Debug: Enables formatting using the {:?} formatter
 /// - Deserialize: Enables deserialization from formats like JSON
 #[derive(Debug, Deserialize)]
-struct CommisionRequest {
+struct CommissionRequest {
     pairing_code: i32,
     name: String,
 }
@@ -163,7 +164,7 @@ struct CommisionRequest {
 /// };
 /// ```
 #[derive(Debug, serde::Serialize)]
-struct CommisionResponse {
+struct CommissionResponse {
     success: bool,
     id: Option<i32>,
     message: String,
@@ -173,7 +174,11 @@ struct CommisionResponse {
 #[tokio::main]
 async fn main() {
     // Initialize the database connection pool
-    let db_pool = SqlitePool::connect("sqlite:devices.db").await.unwrap();
+    dotenv::dotenv().ok();
+    let database_url = dotenv::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let db_pool = SqlitePool::connect(&database_url)
+        .await
+        .expect("Failed to connect to the database");
     // Create application state
     let app_state = AppState { db_pool };
     // Initialize and run the Axum server
@@ -184,7 +189,7 @@ async fn main() {
         )
         .route(
             "/devices/commission",
-            axum::routing::post(handle_device_commision),
+            axum::routing::post(handle_device_commission),
         )
         .with_state(app_state);
 
@@ -326,9 +331,9 @@ async fn handle_device_command(
 ///
 /// ### Returns:
 /// - impl IntoResponse - An HTTP response indicating the result of the commissioning process
-async fn handle_device_commision(
+async fn handle_device_commission(
     State(state): State<AppState>,
-    Json(payload): Json<CommisionRequest>,
+    Json(payload): Json<CommissionRequest>,
 ) -> impl IntoResponse {
     // Check the payload is valid
     let pairing_code = payload.pairing_code;
@@ -343,7 +348,7 @@ async fn handle_device_commision(
     let node_id = match sql_result {
         Ok(id) => id,
         Err(e) => {
-            let response = CommisionResponse {
+            let response = CommissionResponse {
                 success: false,
                 id: None,
                 message: format!("Database error: {}", e),
@@ -361,7 +366,7 @@ async fn handle_device_commision(
         .output();
     // Handle command execution errors
     if result.is_err() {
-        let response = CommisionResponse {
+        let response = CommissionResponse {
             success: false,
             id: None,
             message: format!(
@@ -374,7 +379,7 @@ async fn handle_device_commision(
     let result = result.unwrap();
     // Handle command failure
     if !result.status.success() {
-        let response = CommisionResponse {
+        let response = CommissionResponse {
             success: false,
             id: None,
             message: format!(
@@ -473,7 +478,7 @@ async fn handle_device_commision(
     // Handle the result of the insert operation
     return match insert_result {
         Ok(_) => {
-            let response = CommisionResponse {
+            let response = CommissionResponse {
                 success: true,
                 id: Some(node_id),
                 message: "Device commissioned successfully".to_string(),
@@ -481,7 +486,7 @@ async fn handle_device_commision(
             (StatusCode::OK, Json(response))
         }
         Err(e) => {
-            let response = CommisionResponse {
+            let response = CommissionResponse {
                 success: false,
                 id: None,
                 message: format!("Failed to insert device into database: {}", e),
