@@ -130,7 +130,7 @@ struct CommandResponse {
 /// Represents a request to commission a new device
 ///
 /// ### Fields:
-/// - pairing_code: i32 - The pairing code used for commissioning
+/// - pairing_code: serde_json::Number - The pairing code used for commissioning
 /// - name: String - The user's name for the device
 ///
 /// ### Derives:
@@ -138,7 +138,7 @@ struct CommandResponse {
 /// - Deserialize: Enables deserialization from formats like JSON
 #[derive(Debug, Deserialize)]
 struct CommissionRequest {
-    pairing_code: i32,
+    pairing_code: String,
     name: String,
 }
 
@@ -358,12 +358,17 @@ async fn handle_device_commission(
     };
 
     // Commission the device using chip-tool
-    let result = Command::new("chip-tool")
+    let mut command = Command::new("chip-tool");
+    command
         .arg("pairing")
-        .arg("onnetwork")
+        .arg("code")
         .arg(node_id.to_string())
-        .arg(pairing_code.to_string())
-        .output();
+        .arg(pairing_code.to_string());
+
+    // Log the command for debugging purposesW
+    println!("Executing command: {:?}", command);
+    let result = command.output();
+
     // Handle command execution errors
     if result.is_err() {
         let response = CommissionResponse {
