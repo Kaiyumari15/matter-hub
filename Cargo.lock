@@ -1340,6 +1340,8 @@ dependencies = [
  "sha2",
  "smallvec",
  "thiserror",
+ "tokio",
+ "tokio-stream",
  "tracing",
  "url",
 ]
@@ -1378,6 +1380,7 @@ dependencies = [
  "sqlx-postgres",
  "sqlx-sqlite",
  "syn",
+ "tokio",
  "url",
 ]
 
