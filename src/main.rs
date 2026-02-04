@@ -363,7 +363,9 @@ async fn handle_device_commission(
         .arg("pairing")
         .arg("code")
         .arg(node_id.to_string())
-        .arg(pairing_code.to_string());
+        .arg(pairing_code.to_string())
+        .arg("--bypass-attestation-verifier") // Bypass attestation - Basically removes security check. This is unsafe for production use
+        .arg("true");
 
     // Log the command for debugging purposesW
     println!("Executing command: {:?}", command);
