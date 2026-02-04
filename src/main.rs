@@ -419,7 +419,7 @@ async fn handle_device_commission(
     }
 
     // Get names of supported clusters
-    let supported_clusters: Vec<&str> = cluster_ids
+    let supported_cluster_names: Vec<&str> = cluster_ids
         .iter()
         .filter_map(|cluster_id_str| {
             let cluster_id = u32::from_str_radix(cluster_id_str, 10).ok()?;
@@ -427,24 +427,35 @@ async fn handle_device_commission(
         })
         .collect();
 
+    // DEBUG: Print supported clusters
+    dbg!(supported_cluster_names);
+
     // For each supported cluster, get the supported commands
     let mut map: HashMap<String, Vec<String>> = HashMap::new();
-    for cluster in supported_clusters.iter() {
-        let cluster_id = u32::from_str_radix(cluster, 10).unwrap();
-        let cluster_name = get_cluster_name(cluster_id).unwrap_or("unknown");
+    for cluster_id in cluster_ids.iter() {
+         // THERES SOMETHING GOING WRONG HERE: NOT caused by IDs/regex. They are working fine
+        let cluster_name = get_cluster_name(cluster_id.parse::<u32>().unwrap()).unwrap_or("unknown");
         // Skip unknown clusters
         if cluster_name == "unknown" {
             continue;
         }
-        // GRun the commands to find the supported commands for this cluster
-        let result = Command::new("chip-tool")
+        // Run the commands to find the supported commands for this cluster
+        let mut command = Command::new("chip-tool");
+        command
             .arg(cluster_name)
             .arg("read")
             .arg("accepted-command-list")
             .arg(node_id.to_string())
-            .arg("1")
-            .output()
-            .expect("Failed to execute command to get supported commands");
+            .arg("1");
+
+        // DEBUG: Print the command being executed
+        dbg!(&command);
+
+        let result = command.output().expect("Failed to execute command to get supported commands");
+
+        // DEBUG: Print the raw output
+        dbg!(&stdout);
+
         let stdout = String::from_utf8_lossy(&result.stdout);
         let re = Regex::new(r"\[TOO\].*?\[\d+\]:\s+(\d+)\s+\(").unwrap();
         let mut ids = Vec::new();
@@ -456,20 +467,29 @@ async fn handle_device_commission(
             }
         }
 
+        // DEBUG: Print extracted command IDs
+        dbg!(&ids);
+
         // Map command IDs to names
         let supported_commands: Vec<&str> = ids
             .iter()
             .filter_map(|cmd_id_str| {
                 let cmd_id = u32::from_str_radix(cmd_id_str, 10).ok()?;
-                get_command_name(cluster_id, cmd_id)
+                get_command_name(cluster_id.parse::<u32>().unwrap(), cmd_id)
             })
             .collect();
+
+        // DEBUG: Print supported commands for this cluster
+        dbg!(&supported_commands);
         
         // Insert into final JSON
         map.insert(
             cluster_name.to_string(),
             supported_commands.iter().map(|s| s.to_string()).collect(),
         );
+
+        // DEBUG: Print the current state of the map
+        dbg!(&map);
     }
     
         // Insert the new device into the database
