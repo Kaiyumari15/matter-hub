@@ -184,7 +184,7 @@ async fn main() {
     // Initialize and run the Axum server
     let app = axum::Router::new()
         .route(
-            "/devices/:node_id/:endpoint_id/command",
+            "/devices/:id/command",
             axum::routing::post(handle_device_command),
         )
         .route(
