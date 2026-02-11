@@ -281,6 +281,8 @@ async fn handle_device_command(
     }
     cmd.arg(device.node_id.to_string())
         .arg(device.endpoint_id.to_string());
+
+    dbg!(&cmd); // Log the command for debugging purposes
     
     // Execute the command using chip-tool
     let result = cmd.output();
@@ -311,6 +313,7 @@ async fn handle_device_command(
         }
         // If there was an error executing the command, return an error response
         Err(e) => {
+            dbg!(&e); // Log the error for debugging purposes
             let response = CommandResponse {
                 success: false,
                 message: format!("Failed to execute command: {}", e),
